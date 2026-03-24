@@ -1,25 +1,61 @@
-# Rust Plugin Security Scanner
+# Rust Plugin Security Scanner _**v2.1.0**_
 
-Статический анализатор безопасности для Rust Oxide/uMod плагинов. Проект проверяет `.cs` файлы и папки с плагинами, подсвечивает подозрительные паттерны и позволяет экспортировать отчёты в `TXT`, `JSON` и `HTML`.
+Современный desktop-анализатор безопасности для Rust Oxide/uMod plugins.
 
-## Возможности
+## Что это
 
-- 47 правил детекции по уровням `CRITICAL` -> `INFO`
-- Сканирование одного файла или целой папки
-- Фильтрация результатов по severity
-- Экспорт отчётов в несколько форматов
-- Тестовые образцы для ручной проверки детектора
+Приложение выполняет статический анализ `.cs` плагинов и помогает быстро находить:
+- privilege escalation,
+- remote code execution,
+- suspicious network/data exfiltration patterns,
+- reflection/obfuscation techniques,
+- hardcoded credentials и unsafe code fragments.
 
-## Запуск из исходников
+## Текущий стек
 
-```powershell
+- `PySide6` — desktop UI
+- `PyInstaller` — сборка `.exe`
+- `Python` — scanner core, CLI и exporters
+
+## Быстрый запуск
+
+### Из исходников
+
+```bash
 pip install -r requirements.txt
-python src\scanner_flet.py
+python src\gui_pyside6.py
 ```
 
-## Структура репозитория
+### CLI
+
+```bash
+python src\cli.py "path\to\plugin.cs"
+python src\cli.py "path\to\folder" --format json --output report.json
+```
+
+### Сборка `.exe`
+
+```bash
+python src\build_exe.py
+```
+
+Готовый файл:
+
+```bash
+dist\RustPluginScanner.exe
+```
+
+## Архитектура
 
 ```text
-src/    - исходный код приложения и скрипт сборки
-logo/   - логотипы приложения и Windows-иконка
+src/
+├── gui_pyside6.py     # основной desktop UI
+├── cli.py             # command-line entrypoint
+├── build_exe.py       # сборка Windows .exe
+└── core/
+    ├── models.py      # Rule / Finding
+    ├── rules.py       # rule registry + app metadata
+    ├── scanner.py     # scan_file / scan_target / get_context
+    └── exporters.py   # TXT / JSON / HTML export
 ```
+
