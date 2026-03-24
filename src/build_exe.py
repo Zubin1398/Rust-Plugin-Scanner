@@ -1,33 +1,26 @@
 """
-Builds the desktop application into a standalone Windows executable.
+Скрипт для сборки анализатора в .exe
+Использует PyInstaller
 """
 
 import subprocess
 import sys
+import os
 from pathlib import Path
 
+def install_requirements():
+    """Устанавливает необходимые пакеты"""
+    print("📦 Установка зависимостей...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "PySide6", "pyinstaller"])
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-REQUIREMENTS_FILE = ROOT_DIR / "requirements.txt"
-SOURCE_FILE = ROOT_DIR / "src" / "scanner_flet.py"
-BUILD_DIR = ROOT_DIR / "build"
-DIST_DIR = ROOT_DIR / "dist"
-OUTPUT_EXE = DIST_DIR / "RustPluginScanner.exe"
-ICON_FILE = ROOT_DIR / "logo" / "logo.ico"
-
-
-def install_requirements() -> None:
-    """Installs project dependencies from requirements.txt."""
-    print("Installing project dependencies...")
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-r", str(REQUIREMENTS_FILE)],
-        cwd=ROOT_DIR,
-    )
-
-
-def build_exe() -> None:
-    """Builds the executable with PyInstaller."""
-    print("Building RustPluginScanner.exe...")
+def build_exe():
+    """Собирает .exe файл"""
+    print("🔨 Сборка .exe файла...")
+    repo_root = Path(__file__).resolve().parent.parent  # CHANGE: resolve repo root relative to this script
+    scanner_path = repo_root / "src" / "gui_pyside6.py"  # CHANGE: build the new PySide6 desktop entrypoint instead of the legacy Flet UI
+    icon_path = repo_root / "logo" / "logo.ico"  # CHANGE: resolve Windows icon path from repository layout
+    
+    # Параметры PyInstaller
     cmd = [
         sys.executable,
         "-m",
@@ -36,21 +29,25 @@ def build_exe() -> None:
         "--onefile",
         "--windowed",
         "--clean",
-        f"--distpath={DIST_DIR}",
-        f"--workpath={BUILD_DIR}",
-        f"--specpath={BUILD_DIR}",
+        "--noconfirm",
+        "--hidden-import=PySide6",
+        "--hidden-import=shiboken6",
+        str(scanner_path)
     ]
-    if ICON_FILE.exists():
-        cmd.append(f"--icon={ICON_FILE}")
-    cmd.append(str(SOURCE_FILE))
-    subprocess.check_call(cmd, cwd=ROOT_DIR)
-    print(f"Build completed: {OUTPUT_EXE}")
 
+    if icon_path.is_file():  # CHANGE: embed icon only when the expected file is present
+        cmd.append(f"--icon={icon_path}")  # CHANGE: pass resolved .ico path to PyInstaller
+        cmd.append(f"--add-data={icon_path}{os.pathsep}logo")  # CHANGE: bundle runtime icon asset for page.window.icon lookup
+    
+    subprocess.check_call(cmd)
+    
+    print("✅ Сборка завершена!")
+    print(f"📁 Файл находится в: {Path('dist/RustPluginScanner.exe').absolute()}")
 
 if __name__ == "__main__":
     try:
         install_requirements()
         build_exe()
-    except Exception as exc:
-        print(f"Build failed: {exc}")
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
         sys.exit(1)
